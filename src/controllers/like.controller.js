@@ -3,7 +3,7 @@ import { Like } from "../models/like.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
-import { Video} from "../models/video.model.js";
+import { Video } from "../models/video.model.js";
 import { Comment } from "../models/comment.model.js";
 
 const toggleVideoLike = asyncHandler(async (req, res) => {
@@ -75,16 +75,51 @@ const toggleCommentLike = asyncHandler(async (req, res) => {
 
     return res
       .status(200)
-      .json(new ApiResponse(200,commentLike, "comment liked successfully"));
+      .json(new ApiResponse(200, commentLike, "comment liked successfully"));
   } catch (error) {
     throw new ApiError(400, error?.message);
   }
 });
 
-
-
 const getLikedVideos = asyncHandler(async (req, res) => {
-  
+  try {
+    const likedVideos = await Like.aggregate([
+      {
+        $match: {
+          likedBy: new mongoose.Types.ObjectId(req.user?._id),
+        },
+      },
+      {
+        $lookup: {
+          from: "videos",
+          localField: "video",
+          foreignField: "_id",
+          as: "likedvideos",
+        },
+      },
+      {
+        $unwind: "$likedvideos",
+      },
+      {
+        $project: {
+          likedvideos: 1,
+        },
+      },
+    ]);
+    if (!likedVideos) {
+      return res
+        .status(200)
+        .json(new ApiResponse(200, "user have no liked videos"));
+    }
+
+    return res
+      .status(200)
+      .json(
+        new ApiResponse(200, likedVideos, "liked videos fetched successfully")
+      );
+  } catch (error) {
+    throw new ApiError(400, error?.message);
+  }
 });
 
-export { toggleCommentLike, toggleTweetLike, toggleVideoLike, getLikedVideos };
+export { toggleCommentLike, toggleVideoLike, getLikedVideos };
