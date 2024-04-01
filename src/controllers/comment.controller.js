@@ -9,6 +9,61 @@ const getVideoComments = asyncHandler(async (req, res) => {
   //TODO: get all comments for a video
   const { videoId } = req.params;
   const { page = 1, limit = 10 } = req.query;
+  if (!videoId) {
+    throw new ApiError(400, "can not find video using video Id");
+  }
+
+  const findVideo = await Video.findById(videoId);
+
+  if (!findVideo) {
+    throw new ApiError(400, "can not get video");
+  }
+
+  const getAllComments = await Comment.aggregate([
+    {
+      $match: {
+        video: new mongoose.Types.ObjectId(videoId),
+      },
+    },
+
+    {
+      $lookup: {
+        from: "users",
+        localField: "owner",
+        foreignField: "_id",
+        as: "owner",
+      },
+    },
+    {
+      $addFields: {
+        owner: {
+          $first: "$owner",
+        },
+      },
+    },
+    {
+      $lookup: {
+        from: "likes",
+        localField: "_id",
+        foreignField: "comment",
+        as: "likedBy",
+      },
+    },
+    {
+      $skip: (page - 1) * limit,
+    },
+    {
+      $limit: limit,
+    },
+  ]);
+
+  if (!getAllComments) {
+    throw new ApiError(400, "error while finding the comments");
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, getAllComments, "comment found"));
 });
 
 const addComment = asyncHandler(async (req, res) => {
