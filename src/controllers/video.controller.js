@@ -8,6 +8,23 @@ import { uploadCloudinary } from "../utils/cloudinary.js";
 
 const getAllVideos = asyncHandler(async (req, res) => {
   const { page = 1, limit = 10, query, sortBy, sortType, userId } = req.query;
+  const videos = await Video.aggregatePaginate(query, {
+    page: parseInt(page),
+    limit: parseInt(limit),
+    sort: { [sortBy]: sortType }, 
+    userId: isValidObjectId(userId) ? userId : null,
+    customLabels: {
+        docs: "videos"
+    }
+})
+
+if(!videos){
+    return next(new ApiError(400,"No videos found"))
+}
+
+res
+.status(200)
+.json(new ApiResponse(200,{videos:videos},"Videos are fetched successfully"))
   
 });
 
@@ -38,7 +55,7 @@ const publishAVideo = asyncHandler(async (req, res) => {
     title: title,
     description: description,
     duration: video.duration,
-    views: 0,
+    views: 1000,
     isPublished: false,
   });
   return res
@@ -50,12 +67,13 @@ const getVideoById = asyncHandler(async (req, res) => {
   const { videoId } = req.params;
   const userVideo = await Video.findById(videoId);
 
-  if (
-    !userVideo ||
-    (!userVideo.isPublished && !userVideo.owner === req.user._id)
-  ) {
-    throw new ApiError(400, "video does not exist");
-  }
+
+  // if (
+  //   !userVideo ||
+  //   (!userVideo.isPublished && !userVideo.owner === req.user._id)
+  // ) {
+  //   throw new ApiError(400, "video does not exist");
+  // }
 
   return res
     .status(200)

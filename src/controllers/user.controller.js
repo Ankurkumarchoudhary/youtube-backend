@@ -37,14 +37,22 @@ const registerUser = asyncHandler(async (req, res) => {
     $or: [{ username }, { email }],
   });
   if (existUser) {
-    const error = new ApiError(409, "User with email or username already exist")
+    const error = new ApiError(
+      409,
+      "User with email or username already exist"
+    );
     // throw error;
     res
-    .status(409)
-    .json(new ApiResponse(error.statusCode, error.data, "User with email or username already exist"));
+      .status(409)
+      .json(
+        new ApiResponse(
+          error.statusCode,
+          error.data,
+          "User with email or username already exist"
+        )
+      );
   }
 
-  const avatarLocalPath = req.files?.avatar[0]?.path;
   // const coverImageLocalPath = req.files?.coverImage[0]?.path;
 
   let coverImageLocalPath;
